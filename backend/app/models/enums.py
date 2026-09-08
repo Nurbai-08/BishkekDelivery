@@ -1,0 +1,39 @@
+from enum import StrEnum
+
+
+class Role(StrEnum):
+    CUSTOMER = "CUSTOMER"
+    RESTAURANT_OWNER = "RESTAURANT_OWNER"
+    COURIER = "COURIER"
+    ADMIN = "ADMIN"
+
+
+class OrderStatus(StrEnum):
+    PENDING = "PENDING"
+    CONFIRMED = "CONFIRMED"
+    PREPARING = "PREPARING"
+    READY_FOR_PICKUP = "READY_FOR_PICKUP"
+    COURIER_ASSIGNED = "COURIER_ASSIGNED"
+    PICKED_UP = "PICKED_UP"
+    DELIVERING = "DELIVERING"
+    DELIVERED = "DELIVERED"
+    CANCELLED = "CANCELLED"
+
+
+class PaymentMethod(StrEnum):
+    CASH = "CASH"
+    CARD_ON_DELIVERY = "CARD_ON_DELIVERY"
+
+
+class ImageSource(StrEnum):
+    RESTAURANT_UPLOAD = "RESTAURANT_UPLOAD"
+    GOOGLE_PLACES = "GOOGLE_PLACES"
+    PEXELS = "PEXELS"
+    SYSTEM = "SYSTEM"
+
+
+class Vehicle(StrEnum):
+    WALK = "WALK"
+    BICYCLE = "BICYCLE"
+    SCOOTER = "SCOOTER"
+    CAR = "CAR"
