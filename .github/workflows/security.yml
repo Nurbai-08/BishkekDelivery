@@ -61,7 +61,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Scan dependencies, secrets and IaC
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           scan-type: fs
           scan-ref: .
@@ -79,7 +79,7 @@ jobs:
       - name: Build frontend image
         run: docker build --tag bishkek-delivery-frontend:ci ./frontend
       - name: Scan backend image
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: bishkek-delivery-backend:ci
           scanners: vuln,secret,misconfig
@@ -87,7 +87,7 @@ jobs:
           ignore-unfixed: true
           exit-code: 1
       - name: Scan frontend image
-        uses: aquasecurity/trivy-action@0.30.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: bishkek-delivery-frontend:ci
           scanners: vuln,secret,misconfig
