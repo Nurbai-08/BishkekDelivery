@@ -82,7 +82,7 @@ FIREBASE_PROJECT_ID=your-project
 FIREBASE_SERVICE_ACCOUNT_FILE=/absolute/path/to/service-account.json
 ```
 
-Файл service account должен находиться вне Git. Альтернатива для Railway: secret variables `FIREBASE_CLIENT_EMAIL` и `FIREBASE_PRIVATE_KEY` (переносы строк можно передать как `\n`), либо Google Application Default Credentials. Переменные `VITE_*` попадают в браузер: private key и Admin credentials туда не помещать. Браузерная Firebase-конфигурация сама по себе не является серверным ключом.
+Файл service account должен находиться вне Git. Для хостинга используйте secret variables `FIREBASE_CLIENT_EMAIL` и `FIREBASE_PRIVATE_KEY` (переносы строк можно передать как `\n`) либо Google Application Default Credentials. Переменные `VITE_*` попадают в браузер: private key и Admin credentials туда не помещать. Браузерная Firebase-конфигурация сама по себе не является серверным ключом.
 
 В Firebase Console включите Authentication → Sign-in method → Email/Password и Google. Добавьте домены frontend в Authorized domains, включая `localhost` для локальной разработки. После изменения `.env` перезапустите API; Vite перечитывает env после рестарта.
 
@@ -122,7 +122,7 @@ uv run python -m app.seed
 
 `DEMO_CATALOG=true` явно разрешает seed. Скрипт создаёт 10 вымышленных ресторанов и 40 блюд, не заменяет существующие записи и не создаёт пользователей. Город добавляется отдельной миграцией независимо от demo. Повторный seed не создаёт дубликаты. Демо-рестораны помечены в интерфейсе. Для реальной эксплуатации отключите демо-рестораны через админку и установите `DEMO_CATALOG=false`.
 
-Изменения БД выполняются только Alembic. Не используйте сброс базы для исправления миграций. Production migration запускайте одним release job, до переключения backend, после успешных тестов. Перед изменениями production проверьте резервные копии Neon.
+Изменения БД выполняются только Alembic. Не используйте сброс базы для исправления миграций. Production migration запускайте одним release job, до переключения backend, после успешных тестов. Перед изменениями production проверьте резервные копии базы.
 
 ## Правила заказов
 
@@ -193,28 +193,3 @@ docker compose exec backend python -m app.seed
 ```
 
 Сайт доступен на [localhost:8080](http://localhost:8080). Compose запускает PostgreSQL, отдельный migration job, FastAPI и Nginx с SPA fallback и API proxy. Данные хранятся в named volume. `docker compose down` останавливает сервисы; volume не удалять при обычном перезапуске.
-
-## Deploy
-
-1. Отправьте репозиторий в GitHub. Workflow `Checks` выполняет frontend lint/typecheck/test/build, e2e smoke, backend lint/tests, миграции и проверку соответствия схемы. Workflow `Security checks` запускает npm audit, pip-audit, Gitleaks, Semgrep и Trivy для исходников и Docker images.
-2. Neon: создайте PostgreSQL, задайте SSL connection string в `DATABASE_URL`. Поддерживаются `postgres://`, `postgresql://`, `postgresql+psycopg://`.
-3. Railway: root directory `backend`, Dockerfile, secret env, `APP_ENV=production`, HTTPS `FRONTEND_URL`. `railway.toml` содержит pre-deploy `alembic upgrade head` и readiness check.
-
-Для production также обязательны `DEMO_CATALOG=false`, `RATE_LIMIT_ENABLED=true` и PostgreSQL URL с `sslmode=require` (или `verify-ca`/`verify-full`). Документация FastAPI отключается автоматически при `APP_ENV=production`.
-4. Vercel: root directory `frontend`, framework Vite; задайте `VITE_API_URL=https://API_HOST/api/v1`, название и browser Firebase variables. SPA routes настроены в `vercel.json`.
-5. Firebase: включите providers и разрешите frontend domain. R2: настройте bucket и публичный домен фотографий.
-6. Привяжите custom domains позже. В Railway/Vercel включите ожидание успешного GitHub CI перед автоматическим deployment; настройка подключения платформ выполняется в их проектах.
-
-Сервисы не были опубликованы автоматически: production-аккаунты, серверный Firebase service account, Neon, R2 и доступ к Railway/Vercel предоставляются владельцем проекта. Docker-конфигурация включена, но на текущем компьютере Docker не установлен, поэтому контейнерная сборка здесь не проверялась.
-
-## Границы этой версии
-
-Это первая реализация основного рабочего цикла, а не завершение всех расширений ТЗ. Детальная аналитика ресторана, часы работы по расписанию, расширенное управление категориями/настройками и показ внешних Google Places photos требуют дальнейшего развития. Ручной `is_open` управляет приёмом заказов. Рекомендации — выбранные администратором рестораны.
-
-До публичного запуска нужны реальные меню и фотографии, проверка R2 в вашем bucket, полный E2E с production Firebase providers на staging, эксплуатационные лимиты запросов на reverse proxy, мониторинг и privacy/terms страницы. Сложная география, карты, GPS, WebSocket, OTP и онлайн-платежи относятся к следующей версии по ТЗ.
-
-Исходное ТЗ: [PROJECT_SPEC.md](PROJECT_SPEC.md). Принятые решения по дизайну: [docs/DESIGN.md](docs/DESIGN.md).
-
-Пошаговый production-чеклист: [docs/DEPLOYMENT_CHECKLIST.md](docs/DEPLOYMENT_CHECKLIST.md).
-
-Отчёт аудита безопасности: [docs/SECURITY_AUDIT.md](docs/SECURITY_AUDIT.md).
