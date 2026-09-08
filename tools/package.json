@@ -1,0 +1,1 @@
+{"name":"bishkek-delivery-local-tools","private":true,"devDependencies":{"firebase-tools":"^15.29.0"},"scripts":{"auth":"firebase emulators:start --only auth --project demo-bishkek --config ../firebase.json"}}
