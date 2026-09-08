@@ -2,7 +2,6 @@ node_modules
 dist
 .local
 backend
-PROJECT_SPEC.md
 package-lock.json
 tools/package-lock.json
 frontend/package-lock.json
