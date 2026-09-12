@@ -25,7 +25,7 @@ backend/app/
   db/           engine, sessions, base
 ```
 
-Зависимости frontend направлены сверху вниз по слоям FSD. Серверные данные хранятся в RTK Query; корзина — Redux Toolkit и localStorage. Внешняя identity изолирована в Firebase adapter; данные приложения — в PostgreSQL; изображения — в R2, в БД только ссылки и источник. Backend использует синхронный SQLAlchemy + psycopg, выполняемый FastAPI в thread pool.
+Зависимости frontend направлены сверху вниз по слоям FSD. Серверные данные хранятся в RTK Query; корзина — Redux Toolkit и localStorage. Внешняя identity изолирована в Firebase adapter, данные приложения — в PostgreSQL. Backend использует синхронный SQLAlchemy + psycopg, выполняемый FastAPI в thread pool.
 
 ## Что нужно для запуска
 
@@ -33,7 +33,6 @@ backend/app/
 - Python 3.13 и [uv](https://docs.astral.sh/uv/getting-started/installation/).
 - PostgreSQL 16+ или Docker Compose.
 - Firebase project с Email/Password и Google providers для реального входа. Для локальных проверок доступен официальный Firebase Auth Emulator.
-- R2 bucket и ключи нужны только для загрузки фотографий.
 
 ## Локальная разработка
 
@@ -138,14 +137,6 @@ uv run python -m app.seed
 - Отзыв: только владелец доставленного заказа, один отзыв на заказ, оценка 1–5. Рейтинг считает backend.
 - Страница активного заказа обновляется раз в 15 секунд; polling прекращается после завершения и при потере фокуса окна.
 
-## Фотографии
-
-Заполните `R2_ENDPOINT`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY`, `R2_BUCKET_NAME`, `R2_PUBLIC_URL`. Ключ R2 ограничьте нужным bucket. Endpoint вида `https://ACCOUNT_ID.r2.cloudflarestorage.com`; публичный URL задайте через домен bucket.
-
-В меню владельца: «Изменить» → загрузить JPEG, PNG или WebP до 5 МБ. Сервер проверяет файл, убирает EXIF, уменьшает до 1600px, перекодирует в WebP и создаёт уникальный storage key. Файлы в PostgreSQL не записываются. Без R2 загрузка возвращает понятную ошибку `STORAGE_NOT_CONFIGURED`.
-
-Фотографии кухонь demo-каталога предоставлены Pexels; источники записаны в `app/seed.py` и metadata ресторана. Это иллюстрации кухонь вымышленных ресторанов. До загрузки фотографии конкретного блюда показывается нейтральная заглушка. Seed не скачивает изображения. Адаптер Google Places получает photo references и авторство, отделён от API каталога; показ Google-фото нужно подключать с соблюдением правил атрибуции и срока жизни references. Scraping Google Images не используется.
-
 ## Проверки
 
 ```bash
@@ -187,7 +178,7 @@ npm run dev -- --mode emulator --port 5174
 
 ```bash
 cp .env.example .env
-# Заполните Firebase/R2 переменные.
+# При необходимости заполните переменные окружения.
 docker compose up --build -d
 docker compose exec backend python -m app.seed
 ```
