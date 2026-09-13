@@ -4,6 +4,7 @@ Creates isolated local fixtures; never uses or modifies production accounts.
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 from uuid import uuid4
@@ -18,7 +19,7 @@ from app.models import CourierProfile, Restaurant, User
 from app.models.enums import Role
 from sqlalchemy import select
 
-BASE = "http://127.0.0.1:8000/api/v1"
+BASE = os.getenv("EMULATOR_API_BASE", "http://127.0.0.1:8001/api/v1")
 
 
 def request(method, path, token=None, **kwargs):

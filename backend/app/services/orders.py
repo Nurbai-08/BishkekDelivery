@@ -1,9 +1,11 @@
 import hashlib
+from datetime import timedelta
 from uuid import UUID, uuid4
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.errors import DomainError
 from app.db.base import now
 from app.models import (
@@ -32,6 +34,16 @@ COURIER_TRANSITIONS = {
     S.PICKED_UP: S.DELIVERING,
     S.DELIVERING: S.DELIVERED,
 }
+DEMO_TRACKING_TRANSITIONS = (
+    S.CONFIRMED,
+    S.PREPARING,
+    S.READY_FOR_PICKUP,
+    S.COURIER_ASSIGNED,
+    S.PICKED_UP,
+    S.DELIVERING,
+    S.DELIVERED,
+)
+DEMO_TRACKING_STEP_SECONDS = 15
 
 
 class OrderService:
@@ -115,7 +127,26 @@ class OrderService:
         )
         if not allowed:
             raise DomainError("NOT_FOUND", "Заказ не найден", 404)
+        self._advance_demo_tracking(order, user)
         return order
+
+    def _advance_demo_tracking(self, order: Order, user: User):
+        """Advance local demo orders every 15 seconds without changing real workflows."""
+        if not get_settings().demo_order_tracking or order.status == S.CANCELLED:
+            return
+        status_step = {S.PENDING: 0} | {
+            status: index for index, status in enumerate(DEMO_TRACKING_TRANSITIONS, start=1)
+        }
+        current_step = status_step.get(order.status)
+        if current_step is None:
+            return
+        elapsed_seconds = max(0, (now() - order.created_at).total_seconds())
+        target_step = min(
+            len(DEMO_TRACKING_TRANSITIONS), int(elapsed_seconds // DEMO_TRACKING_STEP_SECONDS)
+        )
+        for step in range(current_step + 1, target_step + 1):
+            scheduled_at = order.created_at + timedelta(seconds=step * DEMO_TRACKING_STEP_SECONDS)
+            self._apply_status(order, user, DEMO_TRACKING_TRANSITIONS[step - 1], scheduled_at)
 
     def transition(self, user: User, order_id: UUID, target: S, actor: str) -> Order:
         order = self._locked(order_id)
@@ -160,19 +191,21 @@ class OrderService:
             raise DomainError("NOT_FOUND", "Заказ не найден", 404)
         return order
 
-    def _apply_status(self, order: Order, user: User, target: S):
+    def _apply_status(self, order: Order, user: User, target: S, changed_at=None):
+        changed_at = changed_at or now()
         order.history.append(
             OrderStatusHistory(
                 from_status=order.status,
                 to_status=target,
                 changed_by_user_id=user.id,
+                created_at=changed_at,
             )
         )
         order.status = target
         if target == S.CONFIRMED:
-            order.confirmed_at = now()
+            order.confirmed_at = changed_at
         if target == S.DELIVERED:
-            order.delivered_at = now()
+            order.delivered_at = changed_at
             order.payment_status = "PAID"
             delivery = self.db.scalar(
                 select(CourierDelivery).where(CourierDelivery.order_id == order.id)

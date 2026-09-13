@@ -27,7 +27,6 @@ export function Layout() {
     location = useLocation()
   const [addressOpen, setAddressOpen] = useState(false)
   const addresses = api.useAddressesQuery(undefined, { skip: !auth.signedIn })
-  const { data: settings } = api.useConfigQuery()
   const selectedAddress = addresses.data?.find((address) => address.is_default) || addresses.data?.[0]
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -102,7 +101,6 @@ export function Layout() {
           <span>
             © {new Date().getFullYear()} {config.appName}
           </span>
-          {settings?.demo_catalog && <span>Демонстрационный каталог · рестораны вымышлены</span>}
           <span>Сделано для вашего аппетита</span>
         </div>
       </footer>

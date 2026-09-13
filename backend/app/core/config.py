@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     r2_public_url: str = ""
     google_places_api_key: str = ""
     demo_catalog: bool = False
+    demo_order_tracking: bool = False
     rate_limit_enabled: bool = False
     rate_limit_requests_per_minute: int = 120
     rate_limit_strict_requests_per_minute: int = 20
@@ -36,8 +37,8 @@ class Settings(BaseSettings):
                 raise ValueError("Firebase emulator is forbidden in production")
             if not self.firebase_project_id or not self.frontend_url.startswith("https://"):
                 raise ValueError("Production requires Firebase and an HTTPS frontend origin")
-            if self.demo_catalog:
-                raise ValueError("Demo catalog must be disabled in production")
+            if self.demo_catalog or self.demo_order_tracking:
+                raise ValueError("Demo features must be disabled in production")
             if not self.rate_limit_enabled:
                 raise ValueError("Rate limiting must be enabled in production")
             if self.firebase_service_account_file and not Path(

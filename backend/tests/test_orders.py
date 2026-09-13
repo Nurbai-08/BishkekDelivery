@@ -1,6 +1,11 @@
+from datetime import timedelta
 from uuid import uuid4
 
 import pytest
+
+from app.core.config import get_settings
+from app.db.base import now
+from app.models import Order
 
 
 def create(client, login, catalog, payload):
@@ -129,6 +134,30 @@ def test_customer_can_only_cancel_pending(client, login, catalog, order_payload)
     assert response.status_code == 200
     assert response.json()["status"] == "CANCELLED"
     assert client.post(f"/api/v1/orders/{order['id']}/cancel").status_code == 409
+
+
+def test_demo_tracking_delivers_order_in_105_seconds(
+    client, login, catalog, order_payload, db, monkeypatch
+):
+    order = create(client, login, catalog, order_payload)
+    db.get(Order, order["id"]).created_at = now() - timedelta(seconds=105)
+    db.commit()
+    monkeypatch.setattr(get_settings(), "demo_order_tracking", True)
+    response = client.get(f"/api/v1/orders/{order['id']}")
+    assert response.status_code == 200
+    delivered = response.json()
+    assert delivered["status"] == "DELIVERED"
+    assert delivered["payment_status"] == "PAID"
+    assert [event["to_status"] for event in delivered["history"]] == [
+        "PENDING",
+        "CONFIRMED",
+        "PREPARING",
+        "READY_FOR_PICKUP",
+        "COURIER_ASSIGNED",
+        "PICKED_UP",
+        "DELIVERING",
+        "DELIVERED",
+    ]
 
 
 def test_missing_product(client, login, catalog, order_payload):

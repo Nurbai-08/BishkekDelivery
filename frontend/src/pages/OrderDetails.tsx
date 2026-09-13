@@ -10,7 +10,9 @@ import { Modal } from '../shared/ui/Modal'
 
 export default function OrderDetails() {
   const { id = '' } = useParams()
-  const [poll, setPoll] = useState(15000)
+  const demoTracking = import.meta.env.VITE_DEMO_ORDER_TRACKING === 'true'
+  const [poll, setPoll] = useState(demoTracking ? 5000 : 15000)
+  const [currentTime, setCurrentTime] = useState(Date.now())
   const query = api.useOrderQuery(id, { pollingInterval: poll, skipPollingIfUnfocused: true })
   const [cancel, cancelState] = api.useCancelOrderMutation(),
     [review, reviewState] = api.useReviewMutation()
@@ -20,10 +22,22 @@ export default function OrderDetails() {
   useEffect(() => {
     if (query.data && !isActive(query.data.status)) setPoll(0)
   }, [query.data])
+  useEffect(() => {
+    if (!demoTracking || !query.data || !isActive(query.data.status)) return
+    const timer = window.setInterval(() => setCurrentTime(Date.now()), 1000)
+    return () => window.clearInterval(timer)
+  }, [demoTracking, query.data])
   if (query.isLoading) return <Loading />
   if (query.error) return <ErrorState error={query.error} retry={query.refetch} />
   const order = query.data
   if (!order) return null
+  const secondsRemaining = Math.max(
+    0,
+    Math.ceil((new Date(order.created_at).getTime() + 105_000 - currentTime) / 1000),
+  )
+  const remainingTime = `${String(Math.floor(secondsRemaining / 60)).padStart(2, '0')}:${String(
+    secondsRemaining % 60,
+  ).padStart(2, '0')}`
   return (
     <div className="standard-page">
       <Link className="back-link" to="/orders">
@@ -35,6 +49,11 @@ export default function OrderDetails() {
       <p className="muted">
         {order.restaurant_name} · {dateTime(order.created_at)}
       </p>
+      {demoTracking && isActive(order.status) && (
+        <p className="notice" role="status">
+          Демо-доставка: следующий этап каждые 15 секунд · осталось примерно {remainingTime}
+        </p>
+      )}
       <div className="checkout-grid">
         <div>
           <section className="panel">
