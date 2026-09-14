@@ -1,8 +1,14 @@
+import base64
+import json
+from time import time
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
+from app.core.errors import DomainError
+from app.core.firebase import _verify_token_with_web_api
 from app.security.rate_limit import RateLimitMiddleware
 from app.security.request_limits import RequestSizeLimitMiddleware
 
@@ -68,6 +74,55 @@ def test_production_settings_require_tls_and_rate_limit():
         **common,
     )
     assert settings.app_env == "production"
+
+
+def test_firebase_web_api_checks_account_and_revocation(monkeypatch):
+    settings = Settings(
+        firebase_project_id="delivery-project",
+        firebase_web_api_key="public-web-key",
+        firebase_auth_emulator_host="",
+        firebase_service_account_file="",
+        firebase_client_email="",
+        firebase_private_key="",
+    )
+    now = int(time())
+    payload = {
+        "sub": "firebase-user",
+        "aud": "delivery-project",
+        "iss": "https://securetoken.google.com/delivery-project",
+        "auth_time": now - 10,
+        "exp": now + 3600,
+    }
+    encoded = base64.urlsafe_b64encode(json.dumps(payload).encode()).decode().rstrip("=")
+    token = f"header.{encoded}.signature"
+
+    class Response:
+        status_code = 200
+
+        def json(self):
+            return {
+                "users": [
+                    {
+                        "localId": "firebase-user",
+                        "email": "user@example.test",
+                        "validSince": str(now - 20),
+                    }
+                ]
+            }
+
+    monkeypatch.setattr("app.core.firebase.httpx.post", lambda *args, **kwargs: Response())
+    claims = _verify_token_with_web_api(token, settings)
+    assert claims == {
+        "uid": "firebase-user",
+        "email": "user@example.test",
+        "name": None,
+    }
+
+    Response.json = lambda self: {
+        "users": [{"localId": "firebase-user", "validSince": str(now)}]
+    }
+    with pytest.raises(DomainError, match="Войдите в аккаунт повторно"):
+        _verify_token_with_web_api(token, settings)
 
 
 def test_request_size_limit_rejects_large_content_length():

@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://delivery:delivery@localhost:5432/delivery"
     frontend_url: str = "http://localhost:5173"
     firebase_project_id: str = ""
+    firebase_web_api_key: str = ""
     firebase_client_email: str = ""
     firebase_private_key: str = ""
     firebase_service_account_file: str = ""
