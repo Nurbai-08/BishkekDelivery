@@ -1,5 +1,7 @@
 # Bishkek Delivery
 
+[Открыть опубликованный сайт](https://bishkek-delivery.vercel.app)
+
 Fullstack-приложение доставки еды: React + TypeScript + FastAPI + PostgreSQL + Firebase Authentication. Интерфейс на русском, суммы в сомах, время в `Asia/Bishkek`.
 
 Реализован основной цикл: каталог → меню → корзина → вход → адрес → проверка актуальных цен → заказ → ресторан → курьер → доставка → отзыв. Каталог загружается из PostgreSQL через API; frontend не подменяет backend данными.
